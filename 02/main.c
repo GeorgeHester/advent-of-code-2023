@@ -10,6 +10,7 @@ typedef struct Game
 {
     unsigned int id;
     int valid;
+    unsigned int power;
 } Game;
 
 enum CubeColor
@@ -102,6 +103,10 @@ parse_game(char* input)
     unsigned int green_cubes = 0;
     unsigned int blue_cubes = 0;
 
+    unsigned int minimum_red_cubes = 0;
+    unsigned int minimum_green_cubes = 0;
+    unsigned int minimum_blue_cubes = 0;
+
     while (input[0] != '\n' && input[0] != '\0')
     {
         while (input[0] == ' ')
@@ -134,21 +139,15 @@ parse_game(char* input)
         if (input[0] == ',') input++;
         if (input[0] == ';' || input[0] == '\n' || input[0] == '\0')
         {
-            if (red_cubes > MAXIMUM_RED_CUBES)
-            {
-                game.valid = 0;
-                break;
-            };
-            if (green_cubes > MAXIMUM_GREEN_CUBES)
-            {
-                game.valid = 0;
-                break;
-            };
-            if (blue_cubes > MAXIMUM_BLUE_CUBES)
-            {
-                game.valid = 0;
-                break;
-            };
+            if (red_cubes > MAXIMUM_RED_CUBES) game.valid = 0;
+            if (green_cubes > MAXIMUM_GREEN_CUBES) game.valid = 0;
+            if (blue_cubes > MAXIMUM_BLUE_CUBES) game.valid = 0;
+
+            if (red_cubes > minimum_red_cubes) minimum_red_cubes = red_cubes;
+            if (green_cubes > minimum_green_cubes)
+                minimum_green_cubes = green_cubes;
+            if (blue_cubes > minimum_blue_cubes)
+                minimum_blue_cubes = blue_cubes;
 
             red_cubes = 0;
             green_cubes = 0;
@@ -158,6 +157,8 @@ parse_game(char* input)
         while (input[0] == ' ')
             input++;
     };
+
+    game.power = minimum_red_cubes * minimum_green_cubes * minimum_blue_cubes;
 
     return game;
 };
@@ -172,10 +173,13 @@ main(void)
     size_t line_length = 0;
 
     unsigned int valid_total = 0;
+    unsigned int power_total = 0;
 
     while (getline(&line, &line_length, file_pointer) != -1)
     {
         Game game = parse_game(line);
+
+        power_total += game.power;
 
         if (game.valid == 1)
         {
@@ -183,7 +187,8 @@ main(void)
         };
     };
 
-    printf("Total: %u\n", valid_total);
+    printf("Valid Total: %u\n", valid_total);
+    printf("Power Total: %u\n", power_total);
 
     return 0;
 };
