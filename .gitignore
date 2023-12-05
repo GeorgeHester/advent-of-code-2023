@@ -1,0 +1,12 @@
+.ds_store
+desktop.ini
+.*
+!.gitignore
+
+/.*/
+!/.github/
+!/.vscode/
+
+**/working/
+**/obj/
+**/bin/
