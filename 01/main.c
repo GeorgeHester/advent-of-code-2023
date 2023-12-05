@@ -33,7 +33,7 @@ int
 main(void)
 {
     FILE* file_pointer;
-    file_pointer = fopen("input", "r");
+    file_pointer = fopen("input.txt", "r");
 
     if (file_pointer == NULL)
     {
