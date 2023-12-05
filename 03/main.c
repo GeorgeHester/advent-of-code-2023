@@ -11,6 +11,25 @@ typedef struct Coordinate
     int checked;
 } Coordinate;
 
+typedef struct CoordinateValue
+{
+    unsigned int value;
+    int checked;
+} CoordinateValue;
+
+typedef struct CoordinateInformation
+{
+    unsigned int total;
+    unsigned int product;
+    unsigned int number_of_part_number;
+} CoordinateInformation;
+
+typedef struct TotalInformation
+{
+    unsigned int part_number_total;
+    unsigned int gear_ratio_total;
+} TotalInformation;
+
 void
 print_input(Coordinate input[HEIGHT][WIDTH])
 {
@@ -22,19 +41,21 @@ print_input(Coordinate input[HEIGHT][WIDTH])
     };
 };
 
-unsigned int
+CoordinateValue
 find_number(Coordinate (*input)[HEIGHT][WIDTH],
             unsigned int row,
             unsigned int column)
 {
-    if ((*input)[row][column].checked == 1) return 0;
+    CoordinateValue output;
+    output.checked = 0;
+    output.value = 0;
+
+    if ((*input)[row][column].checked == 1) output.checked = 1;
     (*input)[row][column].checked = 1;
 
     if ((*input)[row][column].value >= 0x30 &&
         (*input)[row][column].value <= 0x39)
     {
-        (*input)[row][column].checked = 1;
-
         int column_start = column - 1;
         int column_end = column + 1;
 
@@ -66,24 +87,26 @@ find_number(Coordinate (*input)[HEIGHT][WIDTH],
             break;
         };
 
-        unsigned int output = 0;
-
         for (int index = column_start + 1; index < column_end; index++)
         {
-            output = (output * 10) + ((*input)[row][index].value - 0x30);
+            output.value =
+              (output.value * 10) + ((*input)[row][index].value - 0x30);
         };
-
-        return output;
     };
 
-    return 0;
+    return output;
 };
 
-unsigned int
+CoordinateInformation
 find_around(Coordinate (*input)[HEIGHT][WIDTH],
             unsigned int row,
             unsigned int column)
 {
+    CoordinateInformation output;
+    output.total = 0;
+    output.product = 0;
+    output.number_of_part_number = 0;
+
     int check_up = 1;
     int check_right_up = 1;
     int check_right = 1;
@@ -121,25 +144,111 @@ find_around(Coordinate (*input)[HEIGHT][WIDTH],
         check_right_down = 0;
     };
 
-    unsigned int output = 0;
+    if (check_up == 1)
+    {
+        CoordinateValue coordinate = find_number(input, row - 1, column);
+        if (coordinate.checked == 0) output.total += coordinate.value;
+        if (coordinate.value > 0 && coordinate.checked == 0)
+        {
+            output.number_of_part_number++;
+            if (output.product != 0) output.product *= coordinate.value;
+            if (output.product == 0) output.product = coordinate.value;
+        };
+    };
 
-    if (check_up == 1) output += find_number(input, row - 1, column);
-    if (check_right_up == 1) output += find_number(input, row - 1, column + 1);
-    if (check_right == 1) output += find_number(input, row, column + 1);
+    if (check_right_up == 1)
+    {
+        CoordinateValue coordinate = find_number(input, row - 1, column + 1);
+        if (coordinate.checked == 0) output.total += coordinate.value;
+        if (coordinate.value > 0 && coordinate.checked == 0)
+        {
+            output.number_of_part_number++;
+            if (output.product != 0) output.product *= coordinate.value;
+            if (output.product == 0) output.product = coordinate.value;
+        };
+    };
+
+    if (check_right == 1)
+    {
+        CoordinateValue coordinate = find_number(input, row, column + 1);
+        if (coordinate.checked == 0) output.total += coordinate.value;
+        if (coordinate.value > 0 && coordinate.checked == 0)
+        {
+            output.number_of_part_number++;
+            if (output.product != 0) output.product *= coordinate.value;
+            if (output.product == 0) output.product = coordinate.value;
+        };
+    };
+
     if (check_right_down == 1)
-        output += find_number(input, row + 1, column + 1);
-    if (check_down == 1) output += find_number(input, row + 1, column);
-    if (check_left_down == 1) output += find_number(input, row + 1, column - 1);
-    if (check_left == 1) output += find_number(input, row, column - 1);
-    if (check_left_up == 1) output += find_number(input, row - 1, column - 1);
+    {
+        CoordinateValue coordinate = find_number(input, row + 1, column + 1);
+        if (coordinate.checked == 0) output.total += coordinate.value;
+        if (coordinate.value > 0 && coordinate.checked == 0)
+        {
+            output.number_of_part_number++;
+            if (output.product != 0) output.product *= coordinate.value;
+            if (output.product == 0) output.product = coordinate.value;
+        };
+    };
+
+    if (check_down == 1)
+    {
+        CoordinateValue coordinate = find_number(input, row + 1, column);
+        if (coordinate.checked == 0) output.total += coordinate.value;
+        if (coordinate.value > 0 && coordinate.checked == 0)
+        {
+            output.number_of_part_number++;
+            if (output.product != 0) output.product *= coordinate.value;
+            if (output.product == 0) output.product = coordinate.value;
+        };
+    };
+
+    if (check_left_down == 1)
+    {
+        CoordinateValue coordinate = find_number(input, row + 1, column - 1);
+        if (coordinate.checked == 0) output.total += coordinate.value;
+        if (coordinate.value > 0 && coordinate.checked == 0)
+        {
+            output.number_of_part_number++;
+            if (output.product != 0) output.product *= coordinate.value;
+            if (output.product == 0) output.product = coordinate.value;
+        };
+    };
+
+    if (check_left == 1)
+    {
+        CoordinateValue coordinate = find_number(input, row, column - 1);
+        if (coordinate.checked == 0) output.total += coordinate.value;
+        if (coordinate.value > 0 && coordinate.checked == 0)
+        {
+            output.number_of_part_number++;
+            if (output.product != 0) output.product *= coordinate.value;
+            if (output.product == 0) output.product = coordinate.value;
+        };
+    };
+
+    if (check_left_up == 1)
+    {
+        CoordinateValue coordinate = find_number(input, row - 1, column - 1);
+        if (coordinate.checked == 0) output.total += coordinate.value;
+        if (coordinate.value > 0 && coordinate.checked == 0)
+        {
+            output.number_of_part_number++;
+            if (output.product != 0) output.product *= coordinate.value;
+            if (output.product == 0) output.product = coordinate.value;
+        };
+    };
 
     return output;
 };
 
-unsigned int
+TotalInformation
 parse_input(Coordinate (*input)[HEIGHT][WIDTH])
 {
-    unsigned int output = 0;
+    TotalInformation output;
+    output.part_number_total = 0;
+    output.gear_ratio_total = 0;
 
     for (unsigned int row = 0; row < HEIGHT; row++)
     {
@@ -150,7 +259,10 @@ parse_input(Coordinate (*input)[HEIGHT][WIDTH])
                 (*input)[row][column].value <= 0x39)
                 continue;
 
-            output += find_around(input, row, column);
+            CoordinateInformation information = find_around(input, row, column);
+            output.part_number_total += information.total;
+            if (information.number_of_part_number == 2)
+                output.gear_ratio_total += information.product;
         };
     };
 
@@ -189,8 +301,9 @@ main(void)
         };
     };
 
-    unsigned int part_number_total = parse_input(&input);
-    printf("Part Total: %u\n", part_number_total);
+    TotalInformation information = parse_input(&input);
+    printf("Part Total: %u\n", information.part_number_total);
+    printf("Gear Total: %u\n", information.gear_ratio_total);
 
     return 0;
 };
