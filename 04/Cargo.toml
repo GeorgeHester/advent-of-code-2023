@@ -1,0 +1,11 @@
+[package]
+name = "advent-of-code-2023-day-04"
+version = "1.0.0"
+description = ""
+authors = ["GeorgeHester"]
+license = "MIT"
+license-file = "LICENSE"
+repository = ""
+edition = "2021"
+
+[dependencies]
