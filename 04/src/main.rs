@@ -74,11 +74,29 @@ fn calculate_points(value: usize) -> u16
     return u16::pow(2, (value - 1) as u32);
 }
 
+struct Card
+{
+    id: u8,
+    matches: u8,
+    copies: u32,
+}
+
+fn print_cards(cards: Vec<Card>)
+{
+    for card in cards
+    {
+        println!("{} {} {}", card.id, card.matches, card.copies);
+    }
+}
+
 fn main()
 {
     let lines = read_file("input.txt");
 
     let mut total_points: u16 = 0;
+    let mut total_scratchcards: u32 = 0;
+
+    let mut cards: Vec<Card> = Vec::new();
 
     for line_result in lines
     {
@@ -89,8 +107,35 @@ fn main()
 
         card_numbers.retain(|number| winning_numbers.contains(number));
 
+        cards.push(Card {
+            id: id,
+            matches: card_numbers.len() as u8,
+            copies: 1,
+        });
         total_points += calculate_points(card_numbers.len());
     }
 
+    for card_index in 0..cards.len()
+    {
+        let card_matches = cards[card_index].matches;
+        let card_copes = cards[card_index].copies;
+
+        for _ in 0..card_copes
+        {
+            for update_index in card_index + 1..card_index + 1 + (card_matches as usize)
+            {
+                cards[update_index].copies += 1;
+            }
+        }
+    }
+
+    for card in cards.iter()
+    {
+        total_scratchcards += card.copies as u32;
+    }
+
+    // sprint_cards(cards);
+
     println!("Total Points: {}", total_points);
+    println!("Total Scratchcards: {}", total_scratchcards);
 }
