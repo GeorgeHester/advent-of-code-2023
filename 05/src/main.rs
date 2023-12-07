@@ -1,21 +1,39 @@
+use std::cmp;
 use std::collections;
 use std::fs;
 use std::io;
 use std::path;
 
-enum Section {
+enum Section
+{
     Seed,
     Map,
 }
 
-enum LineOperation {
+enum LineOperation
+{
     Skip,
     Operate,
     NewLevel,
 }
 
-fn read_file<P: AsRef<path::Path>>(file_name: P) -> io::Lines<io::BufReader<fs::File>> {
-    let file: fs::File = match fs::File::open(file_name) {
+struct Range
+{
+    start: u64,
+    end: u64,
+}
+
+struct RangeWithOutput
+{
+    start: u64,
+    end: u64,
+    output: u64,
+}
+
+fn read_file<P: AsRef<path::Path>>(file_name: P) -> io::Lines<io::BufReader<fs::File>>
+{
+    let file: fs::File = match fs::File::open(file_name)
+    {
         Ok(file) => file,
         Err(_) => panic!("Error: Failed to open input file"),
     };
@@ -23,109 +41,217 @@ fn read_file<P: AsRef<path::Path>>(file_name: P) -> io::Lines<io::BufReader<fs::
     return io::BufRead::lines(io::BufReader::new(file));
 }
 
-fn determine_operation(input: &String) -> LineOperation {
-    if input.len() == 0 {
+fn determine_operation(input: &String) -> LineOperation
+{
+    if input.len() == 0
+    {
         return LineOperation::NewLevel;
     }
 
-    if input.contains("map") {
+    if input.contains("map")
+    {
         return LineOperation::Skip;
     }
 
     return LineOperation::Operate;
 }
 
-fn parse_seed_ids(input: String) -> Vec<u64> {
+fn parse_seed_ranges(input: &String) -> Vec<Range>
+{
     let mut values: Vec<u64> = Vec::new();
-    let mut output: Vec<u64> = Vec::new();
+    let mut output: Vec<Range> = Vec::new();
+
     let colon_index = input.find(":").unwrap();
 
     (&input[colon_index + ":".len()..input.len()].trim())
         .split_whitespace()
         .for_each(|seed_id_string| values.push(seed_id_string.parse::<u64>().unwrap()));
 
-    for value_index in (0..values.len()).step_by(2) {
-        for index in 0..values[value_index + 1] {
-            output.push(values[value_index] + index);
-        }
+    for value_index in (0..values.len()).step_by(2)
+    {
+        output.push(Range {
+            start: values[value_index],
+            end: values[value_index] + values[value_index + 1],
+        });
     }
 
     return output;
 }
 
-fn update_range_map(map: &mut collections::HashMap<u64, u64>, input: &String) {
+fn parse_level_ranges(input: &String) -> RangeWithOutput
+{
     let values: Vec<u64> = input
         .trim()
         .split_whitespace()
         .map(|value| value.parse::<u64>().unwrap())
         .collect();
 
-    for input_value in values[1]..values[1] + values[2] {
-        let output_value = values[0] + input_value - values[1];
-        map.insert(input_value, output_value);
-    }
+    return RangeWithOutput {
+        start: values[1],
+        end: values[1] + values[2],
+        output: values[0],
+    };
 }
 
-fn determine_last_level(inital: u64, maps: &Vec<collections::HashMap<u64, u64>>) -> u64 {
+/*
+fn determine_last_level(inital: u64, maps: &Vec<collections::HashMap<u64, u64>>) -> u64
+{
     let mut previous_map_value: u64 = inital;
 
-    for map_index in 0..maps.len() {
-        if maps[map_index].contains_key(&previous_map_value) {
+    for map_index in 0..maps.len()
+    {
+        if maps[map_index].contains_key(&previous_map_value)
+        {
             previous_map_value = maps[map_index][&previous_map_value];
         }
     }
 
     return previous_map_value;
 }
+*/
 
-fn main() {
+fn print_ranges(ranges: &Vec<Range>)
+{
+    for range in ranges
+    {
+        println!("{} {}", range.start, range.end);
+    }
+}
+
+fn print_levels(levels: &Vec<Vec<RangeWithOutput>>)
+{
+    let mut level_index = 0;
+    for level in levels
+    {
+        println!("Level {}", level_index);
+        for range in level
+        {
+            println!("{} {} {}", range.start, range.end, range.output);
+        }
+        level_index += 1;
+    }
+}
+
+fn main()
+{
     let lines = read_file("input.txt");
 
     let mut section = Section::Seed;
-    let mut seeds: Vec<u64> = Vec::new();
-    let mut level_maps: Vec<collections::HashMap<u64, u64>> = Vec::new();
-    let mut level_map: collections::HashMap<u64, u64> = collections::HashMap::new();
+    let mut seed_ranges: Vec<Range> = Vec::new();
+    let mut levels: Vec<Vec<RangeWithOutput>> = Vec::new();
+    let mut level: Vec<RangeWithOutput> = Vec::new();
 
-    for line_result in lines {
+    for line_result in lines
+    {
         let line = line_result.unwrap();
 
-        match section {
-            Section::Seed => {
-                if line.len() == 0 {
+        match section
+        {
+            Section::Seed =>
+            {
+                if line.len() == 0
+                {
                     section = Section::Map;
                     continue;
                 }
 
-                seeds = parse_seed_ids(line);
-                seeds.dedup();
+                seed_ranges = parse_seed_ranges(&line);
             }
-            Section::Map => match determine_operation(&line) {
-                LineOperation::NewLevel => {
-                    level_maps.push(level_map);
-                    level_map = collections::HashMap::new();
+            Section::Map => match determine_operation(&line)
+            {
+                LineOperation::NewLevel =>
+                {
+                    levels.push(level);
+                    level = Vec::new();
                     continue;
                 }
-                LineOperation::Skip => {
+                LineOperation::Skip =>
+                {
                     continue;
                 }
-                LineOperation::Operate => {
-                    update_range_map(&mut level_map, &line);
+                LineOperation::Operate =>
+                {
+                    level.push(parse_level_ranges(&line));
                 }
             },
         }
     }
 
-    level_maps.push(level_map);
+    levels.push(level);
 
-    let mut lowest_location: u64 = u64::MAX;
+    //print_ranges(&seed_ranges);
+    //print_levels(&levels);
 
-    for seed in seeds {
+    for level_ranges in &levels
+    {
+        let mut new_seed_ranges: Vec<Range> = Vec::new();
+
+        while seed_ranges.len() > 0
+        {
+            let seed_range = seed_ranges.pop().unwrap();
+            let mut added: bool = false;
+
+            for level_range in level_ranges
+            {
+                let overlap_start: u64 = cmp::max(seed_range.start, level_range.start);
+                let overlap_end: u64 = cmp::min(seed_range.end, level_range.end);
+
+                if overlap_start < overlap_end
+                {
+                    new_seed_ranges.push(Range {
+                        start: overlap_start - level_range.start + level_range.output,
+                        end: overlap_end - level_range.start + level_range.output,
+                    });
+
+                    if overlap_start > seed_range.start
+                    {
+                        seed_ranges.push(Range {
+                            start: seed_range.start,
+                            end: overlap_start,
+                        });
+                    }
+
+                    if overlap_end < seed_range.end
+                    {
+                        seed_ranges.push(Range {
+                            start: overlap_end,
+                            end: seed_range.end,
+                        });
+                    }
+                    added = true;
+                }
+            }
+
+            if !added
+            {
+                new_seed_ranges.push(seed_range);
+            }
+        }
+
+        seed_ranges = new_seed_ranges;
+    }
+
+    println!(
+        "Lowest Location: {}",
+        seed_ranges
+            .iter()
+            .min_by(|range_x, range_y| range_x.start.cmp(&range_y.start))
+            .unwrap()
+            .start
+    );
+
+    //print_ranges(&seed_ranges);
+    /*  let mut lowest_location: u64 = u64::MAX;
+
+    for seed in seeds
+    {
         let new_location: u64 = determine_last_level(seed, &level_maps);
 
-        if lowest_location > new_location {
+        if lowest_location > new_location
+        {
             lowest_location = new_location
         }
     }
 
-    println!("Lowest Location: {}", lowest_location);
+    println!("Lowest Location: {}", lowest_location);*/
 }
