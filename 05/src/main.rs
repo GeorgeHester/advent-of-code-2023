@@ -13,15 +13,10 @@ enum LineOperation {
     SkipNewLevel,
 }
 
-struct Seed {
-    id: u128,
-    levels: Vec<u128>,
-}
-
 struct Range {
-    input_start: u128,
-    input_end: u128,
-    output_start: u128,
+    input_start: u64,
+    input_end: u64,
+    output_start: u64,
 }
 
 fn read_file<P: AsRef<path::Path>>(file_name: P) -> io::Lines<io::BufReader<fs::File>> {
@@ -33,22 +28,29 @@ fn read_file<P: AsRef<path::Path>>(file_name: P) -> io::Lines<io::BufReader<fs::
     return io::BufRead::lines(io::BufReader::new(file));
 }
 
-fn parse_seed_ids(input: String) -> Vec<u128> {
-    let mut output: Vec<u128> = Vec::new();
+fn parse_seed_ids(input: String) -> Vec<u64> {
+    let mut values: Vec<u64> = Vec::new();
+    let mut output: Vec<u64> = Vec::new();
     let colon_index = input.find(":").unwrap();
 
     (&input[colon_index + ":".len()..input.len()].trim())
         .split_whitespace()
-        .for_each(|seed_id_string| output.push(seed_id_string.parse::<u128>().unwrap()));
+        .for_each(|seed_id_string| values.push(seed_id_string.parse::<u64>().unwrap()));
+
+    for value_index in (0..values.len()).step_by(2) {
+        for index in 0..values[value_index + 1] {
+            output.push(values[value_index] + index);
+        }
+    }
 
     return output;
 }
 
 fn parse_range(input: String) -> Range {
-    let values: Vec<u128> = input
+    let values: Vec<u64> = input
         .trim()
         .split_whitespace()
-        .map(|value| value.parse::<u128>().unwrap())
+        .map(|value| value.parse::<u64>().unwrap())
         .collect();
 
     return Range {
@@ -70,16 +72,6 @@ fn determine_operation(input: &String) -> LineOperation {
     return LineOperation::Operate;
 }
 
-fn print_seeds(seeds: Vec<Seed>) {
-    for seed in seeds {
-        println!("{}", seed.id);
-
-        for level in seed.levels {
-            println!("-> {}", level);
-        }
-    }
-}
-
 fn print_levels(levels: Vec<Vec<Range>>) {
     let mut level_index = 0;
     for level in levels {
@@ -93,11 +85,11 @@ fn print_levels(levels: Vec<Vec<Range>>) {
     }
 }
 
-fn calculate_range_output(input: u128, range: &Range) -> u128 {
+fn calculate_range_output(input: u64, range: &Range) -> u64 {
     return range.output_start + (input - range.input_start);
 }
 
-fn determine_range(input: u128, ranges: &Vec<Range>) -> u128 {
+fn determine_range(input: u64, ranges: &Vec<Range>) -> u64 {
     for range in ranges {
         if input < range.input_start || input > range.input_end {
             continue;
@@ -109,29 +101,25 @@ fn determine_range(input: u128, ranges: &Vec<Range>) -> u128 {
     return input;
 }
 
-fn determine_levels(seeds: &mut Vec<Seed>, levels: &Vec<Vec<Range>>) {
-    for seed in seeds {
-        seed.levels.push(determine_range(seed.id, &levels[0]));
-
-        for level_index in 1..levels.len() {
-            seed.levels.push(determine_range(
-                seed.levels[level_index - 1],
-                &levels[level_index],
-            ));
-        }
+fn determine_last_level(start_value: u64, levels: &Vec<Vec<Range>>) -> u64 {
+    let mut previous_level_value: u64 = start_value;
+    for level_index in 0..levels.len() {
+        previous_level_value = determine_range(previous_level_value, &levels[level_index]);
     }
+
+    return previous_level_value;
 }
 
 fn main() {
     let lines = read_file("input.txt");
 
-    let mut seeds: Vec<Seed> = Vec::new();
+    let mut seeds: Vec<u64> = Vec::new();
     let mut section = Section::Seed;
     let mut levels: Vec<Vec<Range>> = Vec::new();
     let mut level: Vec<Range> = Vec::new();
 
     for line_result in lines {
-        let mut line = line_result.unwrap();
+        let line = line_result.unwrap();
 
         match section {
             Section::Seed => {
@@ -143,10 +131,7 @@ fn main() {
                 let seed_ids = parse_seed_ids(line);
 
                 for seed_id in seed_ids {
-                    seeds.push(Seed {
-                        id: seed_id,
-                        levels: Vec::new(),
-                    })
+                    seeds.push(seed_id);
                 }
             }
             Section::Map => match determine_operation(&line) {
@@ -167,16 +152,13 @@ fn main() {
 
     levels.push(level);
 
-    determine_levels(&mut seeds, &levels);
-
-    // print_seeds(seeds);
-    // print_levels(levels);
-
-    let mut lowest_location: u128 = u128::MAX;
+    let mut lowest_location: u64 = u64::MAX;
 
     for seed in seeds {
-        if lowest_location > seed.levels[seed.levels.len() - 1] {
-            lowest_location = seed.levels[seed.levels.len() - 1]
+        let new_location: u64 = determine_last_level(seed, &levels);
+
+        if lowest_location > new_location {
+            lowest_location = new_location
         }
     }
 
