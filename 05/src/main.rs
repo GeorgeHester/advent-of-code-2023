@@ -1,5 +1,4 @@
 use std::cmp;
-use std::collections;
 use std::fs;
 use std::io;
 use std::path;
@@ -58,14 +57,14 @@ fn determine_operation(input: &String) -> LineOperation
 
 fn parse_seed_ranges(input: &String) -> Vec<Range>
 {
-    let mut values: Vec<u64> = Vec::new();
     let mut output: Vec<Range> = Vec::new();
-
     let colon_index = input.find(":").unwrap();
 
-    (&input[colon_index + ":".len()..input.len()].trim())
+    let values: Vec<u64> = (&input[colon_index + ":".len()..input.len()])
+        .trim()
         .split_whitespace()
-        .for_each(|seed_id_string| values.push(seed_id_string.parse::<u64>().unwrap()));
+        .map(|value| value.parse::<u64>().unwrap())
+        .collect();
 
     for value_index in (0..values.len()).step_by(2)
     {
@@ -78,7 +77,7 @@ fn parse_seed_ranges(input: &String) -> Vec<Range>
     return output;
 }
 
-fn parse_level_ranges(input: &String) -> RangeWithOutput
+fn parse_level_range(input: &String) -> RangeWithOutput
 {
     let values: Vec<u64> = input
         .trim()
@@ -94,22 +93,6 @@ fn parse_level_ranges(input: &String) -> RangeWithOutput
 }
 
 /*
-fn determine_last_level(inital: u64, maps: &Vec<collections::HashMap<u64, u64>>) -> u64
-{
-    let mut previous_map_value: u64 = inital;
-
-    for map_index in 0..maps.len()
-    {
-        if maps[map_index].contains_key(&previous_map_value)
-        {
-            previous_map_value = maps[map_index][&previous_map_value];
-        }
-    }
-
-    return previous_map_value;
-}
-*/
-
 fn print_ranges(ranges: &Vec<Range>)
 {
     for range in ranges
@@ -131,6 +114,80 @@ fn print_levels(levels: &Vec<Vec<RangeWithOutput>>)
         level_index += 1;
     }
 }
+*/
+
+fn transform_range(seed_range: &Range, ranges: &Vec<RangeWithOutput>) -> Vec<Range>
+{
+    let mut output: Vec<Range> = Vec::new();
+    let mut output_transformed: bool = false;
+
+    for range in ranges
+    {
+        let overlap_start: u64 = cmp::max(seed_range.start, range.start);
+        let overlap_end: u64 = cmp::min(seed_range.end, range.end);
+
+        if overlap_start < overlap_end
+        {
+            output.push(Range {
+                start: overlap_start - range.start + range.output,
+                end: overlap_end - range.start + range.output,
+            });
+
+            if overlap_start > seed_range.start
+            {
+                output.append(&mut transform_range(
+                    &Range {
+                        start: seed_range.start,
+                        end: overlap_start,
+                    },
+                    ranges,
+                ))
+            }
+
+            if overlap_end < seed_range.end
+            {
+                output.append(&mut transform_range(
+                    &Range {
+                        start: overlap_end,
+                        end: seed_range.end,
+                    },
+                    ranges,
+                ))
+            }
+
+            output_transformed = true;
+        }
+    }
+
+    if !output_transformed
+    {
+        output.push(Range {
+            start: seed_range.start,
+            end: seed_range.end,
+        });
+    }
+
+    return output;
+}
+
+fn transform_output(seed_ranges: Vec<Range>, levels: &Vec<Vec<RangeWithOutput>>) -> Vec<Range>
+{
+    let mut output_seed_ranges: Vec<Range> = seed_ranges;
+
+    for ranges in levels
+    {
+        let mut hold_seed_ranges: Vec<Range> = Vec::new();
+
+        for seed_range in output_seed_ranges
+        {
+            hold_seed_ranges.append(&mut transform_range(&seed_range, &ranges));
+        }
+
+        output_seed_ranges = hold_seed_ranges;
+    }
+
+    return output_seed_ranges;
+}
 
 fn main()
 {
@@ -139,7 +196,7 @@ fn main()
     let mut section = Section::Seed;
     let mut seed_ranges: Vec<Range> = Vec::new();
     let mut levels: Vec<Vec<RangeWithOutput>> = Vec::new();
-    let mut level: Vec<RangeWithOutput> = Vec::new();
+    let mut ranges: Vec<RangeWithOutput> = Vec::new();
 
     for line_result in lines
     {
@@ -161,8 +218,8 @@ fn main()
             {
                 LineOperation::NewLevel =>
                 {
-                    levels.push(level);
-                    level = Vec::new();
+                    levels.push(ranges);
+                    ranges = Vec::new();
                     continue;
                 }
                 LineOperation::Skip =>
@@ -171,18 +228,18 @@ fn main()
                 }
                 LineOperation::Operate =>
                 {
-                    level.push(parse_level_ranges(&line));
+                    ranges.push(parse_level_range(&line));
                 }
             },
         }
     }
 
-    levels.push(level);
+    levels.push(ranges);
 
     //print_ranges(&seed_ranges);
     //print_levels(&levels);
 
-    for level_ranges in &levels
+    /*for level_ranges in &levels
     {
         let mut new_seed_ranges: Vec<Range> = Vec::new();
 
@@ -229,11 +286,13 @@ fn main()
         }
 
         seed_ranges = new_seed_ranges;
-    }
+    }*/
+
+    let output_seed_ranges: Vec<Range> = transform_output(seed_ranges, &levels);
 
     println!(
         "Lowest Location: {}",
-        seed_ranges
+        output_seed_ranges
             .iter()
             .min_by(|range_x, range_y| range_x.start.cmp(&range_y.start))
             .unwrap()
