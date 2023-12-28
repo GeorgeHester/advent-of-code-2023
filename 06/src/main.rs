@@ -1,4 +1,3 @@
-use std::cmp;
 use std::fs;
 use std::io;
 use std::iter;
@@ -15,33 +14,30 @@ fn read_file<P: AsRef<path::Path>>(file_name: P) -> io::Lines<io::BufReader<fs::
     return io::BufRead::lines(io::BufReader::new(file));
 }
 
-/*
-struct Race
+fn parse_race_length(input: &String) -> u64
 {
-    length: u64,
-    distance: u64,
-}*/
-
-fn parse_race_lengths(input: &String) -> Vec<u64>
-{
-    let lengths: Vec<u64> = input.split(":").collect::<Vec<&str>>()[1]
+    let length: u64 = input.split(":").collect::<Vec<&str>>()[1]
         .trim()
-        .split_whitespace()
-        .map(|value| value.parse::<u64>().unwrap())
-        .collect::<Vec<u64>>();
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect::<String>()
+        .parse::<u64>()
+        .unwrap();
 
-    return lengths;
+    return length;
 }
 
-fn parse_race_distances(input: &String) -> Vec<u64>
+fn parse_race_distance(input: &String) -> u64
 {
-    let lengths: Vec<u64> = input.split(":").collect::<Vec<&str>>()[1]
+    let distance: u64 = input.split(":").collect::<Vec<&str>>()[1]
         .trim()
-        .split_whitespace()
-        .map(|value| value.parse::<u64>().unwrap())
-        .collect::<Vec<u64>>();
+        .chars()
+        .filter(|character| !character.is_whitespace())
+        .collect::<String>()
+        .parse::<u64>()
+        .unwrap();
 
-    return lengths;
+    return distance;
 }
 
 fn main()
@@ -50,47 +46,25 @@ fn main()
         .map(|value| value.unwrap())
         .collect::<Vec<String>>();
 
-    //let mut races: Vec<Race> = Vec::new();
-
     if lines.len() < 2
     {
         return;
     }
 
-    let lengths = parse_race_lengths(&lines[0]);
-    let distances = parse_race_distances(&lines[1]);
+    let length = parse_race_length(&lines[0]);
+    let distance = parse_race_distance(&lines[1]);
 
-    if lengths.len() != distances.len()
+    let mut number_of_ways: u64 = 0;
+
+    for case in 0..length
     {
-        return;
-    }
+        let case_distance = (length - case) * case;
 
-    let mut numbers_of_ways: Vec<u64> = Vec::new();
-
-    for race in iter::zip(lengths, distances)
-    {
-        let (length, distance) = race;
-        let mut number_of_ways = 0;
-
-        for case in 0..length
+        if case_distance > distance
         {
-            let case_distance = (length - case) * case;
-
-            if case_distance > distance
-            {
-                number_of_ways += 1;
-            }
+            number_of_ways += 1;
         }
-
-        numbers_of_ways.push(number_of_ways);
     }
 
-    println!(
-        "Number Ways: {}",
-        numbers_of_ways
-            .iter()
-            .copied()
-            .reduce(|a, b| a * b)
-            .unwrap()
-    )
+    println!("Number Ways: {}", number_of_ways)
 }
