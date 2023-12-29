@@ -26,7 +26,7 @@ fn main()
     {
         output += (index + 1) * hand.1;
 
-        println!("{} {}", index + 1, hand.1);
+        //println!("{} {}", index + 1, hand.1);
     }
 
     println!("Total Winnings: {}", output);

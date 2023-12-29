@@ -32,7 +32,7 @@ impl PartialEq for Card
 
 fn card_value_from_character(character: &char) -> u8
 {
-    return "123456789TJQKA".find(*character).unwrap() as u8;
+    return "J123456789TQKA".find(*character).unwrap() as u8;
 }
 
 pub fn card_from_character(character: &char) -> Card

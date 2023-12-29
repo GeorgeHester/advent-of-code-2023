@@ -56,8 +56,15 @@ impl PartialEq for Hand
 fn hand_type_from_string(string: &String) -> HandType
 {
     let mut multiples_map: collections::HashMap<char, u8> = collections::HashMap::new();
+    let mut jokers_count = 0;
 
     string.chars().for_each(|character| {
+        if character == 'J'
+        {
+            jokers_count += 1;
+            return;
+        }
+
         let multiples_map_entry = multiples_map.entry(character).or_insert(0);
         *multiples_map_entry += 1;
     });
@@ -65,7 +72,12 @@ fn hand_type_from_string(string: &String) -> HandType
     let mut multiples: Vec<u8> = multiples_map.values().map(|value| *value).collect();
     multiples.sort_by(|a, b| b.cmp(a));
 
-    match multiples[0]
+    if jokers_count == 5
+    {
+        return HandType::FiveOfAKind;
+    }
+
+    match multiples[0] + jokers_count
     {
         5 => return HandType::FiveOfAKind,
         4 => return HandType::FourOfAKind,
