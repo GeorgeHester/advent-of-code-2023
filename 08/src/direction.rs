@@ -1,4 +1,4 @@
-use std::fmt::{self, Formatter};
+use std::fmt;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
 pub enum Direction
