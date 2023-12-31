@@ -1,6 +1,5 @@
 use std::fs;
 use std::io;
-use std::iter;
 use std::path;
 
 fn read_file<P: AsRef<path::Path>>(file_name: P) -> io::Lines<io::BufReader<fs::File>>

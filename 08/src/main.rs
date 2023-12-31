@@ -11,13 +11,7 @@ fn main()
         .map(|value| value.unwrap())
         .collect();
 
-    if lines.len() < 3
-    {
-        return;
-    }
-
     let directions: Vec<direction::Direction> = map::parse_directions(&lines[0]);
-
     let mut map: collections::HashMap<String, (String, String)> = collections::HashMap::new();
 
     for index in 2..lines.len()
